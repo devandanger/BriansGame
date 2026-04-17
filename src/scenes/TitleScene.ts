@@ -1,8 +1,15 @@
 import Phaser from 'phaser';
+import { addMuteButton } from '../ui/muteButton';
+
+let titleAudioPlayedThisSession = false;
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('TitleScene');
+  }
+
+  preload() {
+    this.load.audio('titleAudio', 'assets/title-audio.m4a');
   }
 
   create() {
@@ -75,6 +82,10 @@ export class TitleScene extends Phaser.Scene {
     }
 
     const start = () => {
+      if (!titleAudioPlayedThisSession) {
+        titleAudioPlayedThisSession = true;
+        this.sound.play('titleAudio', { volume: 0.7 });
+      }
       try {
         if (!this.scale.isFullscreen) this.scale.startFullscreen();
       } catch {
@@ -83,8 +94,13 @@ export class TitleScene extends Phaser.Scene {
       this.scene.start('MainScene', { level: 1 });
     };
 
+    addMuteButton(this);
+
     this.input.keyboard!.once('keydown', start);
-    this.input.once('pointerdown', start);
+    this.input.on('pointerdown', (_p: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (currentlyOver && currentlyOver.length > 0) return;
+      start();
+    });
   }
 }
 

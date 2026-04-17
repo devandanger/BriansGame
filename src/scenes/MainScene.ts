@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addMuteButton } from '../ui/muteButton';
 
 const WORLD_WIDTH = 3200;
 const WORLD_HEIGHT = 540;
@@ -18,6 +19,8 @@ export class MainScene extends Phaser.Scene {
   private blobfish: Blobfish[] = [];
   private level = 1;
   private prompting = false;
+  private bounceUntil = 0;
+  private bounceCooldownUntil = 0;
 
   private get isWaterLevel() {
     return this.level % 2 === 0;
@@ -31,6 +34,8 @@ export class MainScene extends Phaser.Scene {
     this.level = data.level ?? 1;
     this.prompting = false;
     this.blobfish = [];
+    this.bounceUntil = 0;
+    this.bounceCooldownUntil = 0;
   }
 
   preload() {
@@ -67,7 +72,10 @@ export class MainScene extends Phaser.Scene {
     g.destroy();
 
     this.load.image('blobfish', 'assets/blobfish.png');
+    this.load.image('coral', 'assets/coral.png');
+    this.load.image('shark', 'assets/shark.png');
     this.load.audio('blobfishSfx', 'assets/blobfish.m4a');
+    this.load.audio('sharkSfx', 'assets/shark.m4a');
   }
 
   create() {
@@ -81,7 +89,9 @@ export class MainScene extends Phaser.Scene {
 
     if (this.isWaterLevel) {
       this.drawWater();
+      this.spawnCoral();
       this.spawnBlobfish();
+      this.scheduleSharkPass();
     }
 
     this.platforms = this.physics.add.staticGroup();
@@ -96,19 +106,24 @@ export class MainScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(18, 28).setOffset(3, 3);
     this.player.setDepth(6);
-    this.physics.add.collider(this.player, this.platforms);
+    this.physics.add.collider(this.player, this.platforms, this.onObstacleHit, undefined, this);
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cursors = this.input.keyboard!.createCursorKeys();
 
-    this.input.on('pointerdown', this.handlePointerAction, this);
+    this.input.on('pointerdown', (_p: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (currentlyOver && currentlyOver.length > 0) return;
+      this.handlePointerAction();
+    });
 
     const label = this.isWaterLevel ? `Level ${this.level}  ~ water ~` : `Level ${this.level}`;
-    this.add.text(12, 12, label, {
+    this.add.text(72, 12, label, {
       fontFamily: "'Caveat', 'Kalam', cursive",
       fontSize: '28px',
       color: '#2a2420'
     }).setScrollFactor(0).setDepth(100);
+
+    addMuteButton(this);
   }
 
   private drawPaperBackground() {
@@ -122,6 +137,64 @@ export class MainScene extends Phaser.Scene {
     bg.lineBetween(60, 0, 60, WORLD_HEIGHT);
     bg.lineStyle(1.5, 0xc95454, 0.35);
     bg.lineBetween(62, 0, 62, WORLD_HEIGHT);
+  }
+
+  private scheduleSharkPass() {
+    const delay = 2500 + Math.random() * 6000;
+    this.time.delayedCall(delay, () => this.spawnShark());
+  }
+
+  private spawnShark() {
+    if (this.prompting || !this.scene.isActive()) return;
+
+    const cam = this.cameras.main;
+    const fromLeft = Math.random() < 0.5;
+    const startY = WATER_TOP_Y + 30 + Math.random() * 40;
+    const endY = WORLD_HEIGHT - 60;
+    const offscreenPad = 220;
+
+    const startX = fromLeft
+      ? cam.scrollX - offscreenPad
+      : cam.scrollX + cam.width + offscreenPad;
+    const endX = fromLeft
+      ? cam.scrollX + cam.width + offscreenPad
+      : cam.scrollX - offscreenPad;
+
+    this.sound.play('sharkSfx', { volume: 0.7 });
+
+    const shark = this.add.image(startX, startY, 'shark').setDepth(7).setScale(0.35);
+    if (fromLeft) {
+      shark.setAngle(30);
+    } else {
+      shark.setFlipX(true);
+      shark.setAngle(-30);
+    }
+
+    const duration = 2400 + Math.random() * 1400;
+    this.tweens.add({
+      targets: shark,
+      x: endX,
+      y: endY,
+      duration,
+      ease: 'Sine.easeIn',
+      onComplete: () => shark.destroy()
+    });
+  }
+
+  private spawnCoral() {
+    const rng = mulberry32(hashLevel(this.level) ^ 0x636f7261);
+    const count = 8 + Math.floor(rng() * 6);
+    const minX = 160;
+    const maxX = WORLD_WIDTH - 160;
+    const groundTop = GROUND_Y - 16;
+
+    for (let i = 0; i < count; i++) {
+      const x = minX + rng() * (maxX - minX);
+      const scale = 0.5 + rng() * 0.45;
+      const coral = this.add.image(x, groundTop, 'coral').setOrigin(0.5, 1).setDepth(2);
+      coral.setScale(scale);
+      if (rng() < 0.5) coral.setFlipX(true);
+    }
   }
 
   private spawnBlobfish() {
@@ -276,11 +349,20 @@ export class MainScene extends Phaser.Scene {
   }
 
   private nextLevel() {
-    if (this.level >= 4) {
+    if (this.level >= 2) {
       this.scene.start('CreditsScene');
       return;
     }
     this.scene.restart({ level: this.level + 1 });
+  }
+
+  private onObstacleHit() {
+    if (this.time.now < this.bounceCooldownUntil) return;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body.touching.right || body.blocked.right) {
+      this.bounceUntil = this.time.now + 180;
+      this.bounceCooldownUntil = this.time.now + 650;
+    }
   }
 
   private handlePointerAction() {
@@ -302,7 +384,11 @@ export class MainScene extends Phaser.Scene {
     const runSpeed = 240;
     const body = this.player.body as Phaser.Physics.Arcade.Body;
 
-    this.player.setVelocityX(runSpeed);
+    if (this.time.now < this.bounceUntil) {
+      this.player.setVelocityX(-150);
+    } else {
+      this.player.setVelocityX(runSpeed);
+    }
 
     const up = this.cursors.up!;
     const space = this.cursors.space!;

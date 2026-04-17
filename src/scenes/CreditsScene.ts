@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { addMuteButton } from '../ui/muteButton';
 
 export class CreditsScene extends Phaser.Scene {
   constructor() {
@@ -51,7 +52,12 @@ export class CreditsScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: hint, alpha: 0.4, duration: 700, yoyo: true, repeat: -1 });
 
+    addMuteButton(this);
+
     this.input.keyboard!.once('keydown', () => this.scene.start('TitleScene'));
-    this.input.once('pointerdown', () => this.scene.start('TitleScene'));
+    this.input.on('pointerdown', (_p: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (currentlyOver && currentlyOver.length > 0) return;
+      this.scene.start('TitleScene');
+    });
   }
 }
