@@ -8,9 +8,15 @@
     ],
     "headers": [
       {
-        "source": "assets/**",
+        "source": "**/*.@(js|css)",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "assets/**/*.@(m4a|mp3|wav|ogg|png|jpg|jpeg|webp|svg|gif)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=3600" }
         ]
       }
     ]

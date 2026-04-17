@@ -18,5 +18,6 @@ new Phaser.Game({
     default: 'arcade',
     arcade: { gravity: { x: 0, y: 900 }, debug: false }
   },
+  audio: { disableWebAudio: true },
   scene: [TitleScene, MainScene, CreditsScene]
 });

@@ -68,6 +68,12 @@ export class TitleScene extends Phaser.Scene {
       repeat: -1
     });
 
+    this.add.text(width - 10, 10, `v${__APP_VERSION__}`, {
+      fontFamily: "'Caveat', 'Kalam', cursive",
+      fontSize: '18px',
+      color: '#6b5340'
+    }).setOrigin(1, 0).setAlpha(0.75).setDepth(1000);
+
     if (isIOSSafariNonStandalone()) {
       this.add.text(
         cx,
@@ -84,7 +90,18 @@ export class TitleScene extends Phaser.Scene {
     const start = () => {
       if (!titleAudioPlayedThisSession) {
         titleAudioPlayedThisSession = true;
-        this.sound.play('titleAudio', { volume: 0.7 });
+
+        const native = new Audio('assets/title-audio.m4a');
+        native.volume = 0.7;
+        native.play().catch(() => {
+          // iOS may refuse if gesture chain is broken; non-fatal
+        });
+
+        try {
+          (this.sound as unknown as { unlock?: () => void }).unlock?.();
+        } catch {
+          // unlock is best-effort; in-game SFX will retry on next gesture
+        }
       }
       try {
         if (!this.scale.isFullscreen) this.scale.startFullscreen();
