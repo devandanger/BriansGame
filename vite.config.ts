@@ -8,7 +8,14 @@ const pkg = JSON.parse(
 
 export default defineConfig({
   server: { port: 5173, open: true },
-  build: { target: 'es2020' },
+  build: {
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        manualChunks: { phaser: ['phaser'] }
+      }
+    }
+  },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version)
   }

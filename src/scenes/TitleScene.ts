@@ -8,10 +8,6 @@ export class TitleScene extends Phaser.Scene {
     super('TitleScene');
   }
 
-  preload() {
-    this.load.audio('titleAudio', 'assets/title-audio.m4a');
-  }
-
   create() {
     const { width, height } = this.scale;
 

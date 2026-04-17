@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { MainScene } from './scenes/MainScene';
 import { CreditsScene } from './scenes/CreditsScene';
@@ -19,5 +20,5 @@ new Phaser.Game({
     arcade: { gravity: { x: 0, y: 900 }, debug: false }
   },
   audio: { disableWebAudio: true },
-  scene: [TitleScene, MainScene, CreditsScene]
+  scene: [BootScene, TitleScene, MainScene, CreditsScene]
 });

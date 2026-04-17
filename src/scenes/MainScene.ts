@@ -48,46 +48,6 @@ export class MainScene extends Phaser.Scene {
     this.bounceCooldownUntil = 0;
   }
 
-  preload() {
-    const g = this.add.graphics();
-
-    sketchRect(g, 0, 0, 24, 32, 0xfff8e8, 0x2a2420);
-    g.fillStyle(0x2a2420, 1);
-    g.fillCircle(9, 11, 1.5);
-    g.fillCircle(16, 11, 1.5);
-    g.lineStyle(1, 0x2a2420, 0.9);
-    g.beginPath();
-    g.moveTo(9, 20);
-    g.lineTo(16, 20);
-    g.strokePath();
-    g.generateTexture('player', 24, 32);
-    g.clear();
-
-    sketchRect(g, 0, 0, 64, 32, 0xe8dcb5, 0x2a2420);
-    g.lineStyle(1, 0x2a2420, 0.35);
-    for (let i = 0; i < 6; i++) {
-      const sx = 4 + i * 10 + Math.random() * 2;
-      g.lineBetween(sx, 8 + Math.random() * 2, sx + 6, 14 + Math.random() * 2);
-    }
-    g.generateTexture('ground', 64, 32);
-    g.clear();
-
-    sketchRect(g, 0, 0, 32, 32, 0xd9c98a, 0x2a2420);
-    g.lineStyle(1, 0x2a2420, 0.3);
-    for (let i = 0; i < 3; i++) {
-      const hy = 8 + i * 8 + Math.random() * 2;
-      g.lineBetween(5 + Math.random() * 2, hy, 27 - Math.random() * 2, hy + 3);
-    }
-    g.generateTexture('block', 32, 32);
-    g.destroy();
-
-    this.load.image('blobfish', 'assets/blobfish.png');
-    this.load.image('coral', 'assets/coral.png');
-    this.load.image('shark', 'assets/shark.png');
-    this.load.audio('blobfishSfx', 'assets/blobfish.m4a');
-    this.load.audio('sharkSfx', 'assets/shark.m4a');
-  }
-
   create() {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.physics.world.TILE_BIAS = 32;
@@ -494,29 +454,6 @@ export class MainScene extends Phaser.Scene {
       }
     }
   }
-}
-
-function sketchRect(
-  g: Phaser.GameObjects.Graphics,
-  x: number, y: number, w: number, h: number,
-  fill: number, stroke: number
-) {
-  g.fillStyle(fill, 1);
-  g.fillRect(x, y, w, h);
-
-  const outline = (lineW: number, alpha: number) => {
-    const r = () => Math.random() * 1.2;
-    g.lineStyle(lineW, stroke, alpha);
-    g.beginPath();
-    g.moveTo(x + r(), y + r());
-    g.lineTo(x + w - r(), y + r());
-    g.lineTo(x + w - r(), y + h - r());
-    g.lineTo(x + r(), y + h - r());
-    g.closePath();
-    g.strokePath();
-  };
-  outline(1.5, 0.9);
-  outline(1, 0.5);
 }
 
 function hashLevel(level: number): number {
