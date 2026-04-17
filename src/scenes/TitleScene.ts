@@ -61,7 +61,42 @@ export class TitleScene extends Phaser.Scene {
       repeat: -1
     });
 
-    this.input.keyboard!.once('keydown', () => this.scene.start('MainScene', { level: 1 }));
-    this.input.once('pointerdown', () => this.scene.start('MainScene', { level: 1 }));
+    if (isIOSSafariNonStandalone()) {
+      this.add.text(
+        cx,
+        height - 38,
+        'iPhone: tap Share ⬆︎ → Add to Home Screen for full screen',
+        {
+          fontFamily: "'Caveat', 'Kalam', cursive",
+          fontSize: '22px',
+          color: '#6b5340'
+        }
+      ).setOrigin(0.5).setAlpha(0.9);
+    }
+
+    const start = () => {
+      try {
+        if (!this.scale.isFullscreen) this.scale.startFullscreen();
+      } catch {
+        // iPhone Safari has no Fullscreen API; game still starts
+      }
+      this.scene.start('MainScene', { level: 1 });
+    };
+
+    this.input.keyboard!.once('keydown', start);
+    this.input.once('pointerdown', start);
   }
+}
+
+function isIOSSafariNonStandalone(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (ua.includes('Mac') && typeof document !== 'undefined' && 'ontouchend' in document);
+  if (!isIOS) return false;
+  const isSafari = !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  if (!isSafari) return false;
+  const standalone = (navigator as unknown as { standalone?: boolean }).standalone === true ||
+    (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches);
+  return !standalone;
 }

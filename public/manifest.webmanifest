@@ -1,0 +1,10 @@
+{
+  "name": "Uncle Brian's Game",
+  "short_name": "Uncle Brian's",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#f5efdc",
+  "theme_color": "#2a2620",
+  "start_url": "/",
+  "scope": "/"
+}

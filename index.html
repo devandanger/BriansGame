@@ -2,19 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Brian's Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Uncle Brian's" />
+    <meta name="theme-color" content="#2a2620" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Uncle Brian's Game</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
     <style>
-      html, body { margin: 0; padding: 0; background: #2a2620; height: 100%; }
+      html, body { margin: 0; padding: 0; background: #2a2620; height: 100%; overflow: hidden; }
       body { display: flex; align-items: center; justify-content: center; font-family: 'Kalam', 'Caveat', cursive; }
       #game canvas { box-shadow: 0 6px 30px rgba(0,0,0,0.5); border-radius: 4px; }
+
+      #rotate-prompt {
+        display: none;
+        position: fixed; inset: 0;
+        background: #f5efdc;
+        color: #2a2420;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 24px;
+        z-index: 9999;
+        font-family: 'Caveat', 'Kalam', cursive;
+      }
+      #rotate-prompt .icon {
+        font-size: 88px;
+        display: inline-block;
+        animation: rotateHint 1.8s ease-in-out infinite;
+      }
+      #rotate-prompt h1 { font-size: 42px; margin: 16px 0 6px; }
+      #rotate-prompt p { font-size: 24px; margin: 0; color: #8a5a2b; }
+      @keyframes rotateHint {
+        0%, 100% { transform: rotate(0deg); }
+        40%, 60% { transform: rotate(-90deg); }
+      }
+
+      @media only screen and (orientation: portrait) and (max-width: 900px) {
+        #game { display: none; }
+        #rotate-prompt { display: flex; }
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="rotate-prompt">
+      <span class="icon">📱</span>
+      <h1>Please rotate your phone</h1>
+      <p>Uncle Brian's Game plays in landscape</p>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
