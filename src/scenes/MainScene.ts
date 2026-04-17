@@ -6,8 +6,10 @@ const WORLD_HEIGHT = 540;
 const GROUND_Y = WORLD_HEIGHT - 16;
 const LAND_GRAVITY = 900;
 const WATER_GRAVITY = 260;
+const SPACE_GRAVITY = 200;
 const JUMP_VELOCITY = -620;
 const SWIM_VELOCITY = -280;
+const THRUST_VELOCITY = -260;
 const WATER_TOP_Y = WORLD_HEIGHT * 0.2;
 
 type Blobfish = Phaser.GameObjects.Image & { _seen?: boolean };
@@ -23,7 +25,15 @@ export class MainScene extends Phaser.Scene {
   private bounceCooldownUntil = 0;
 
   private get isWaterLevel() {
-    return this.level % 2 === 0;
+    return this.level === 2;
+  }
+
+  private get isSpaceLevel() {
+    return this.level === 3;
+  }
+
+  private get isFloaty() {
+    return this.isWaterLevel || this.isSpaceLevel;
   }
 
   constructor() {
@@ -81,9 +91,16 @@ export class MainScene extends Phaser.Scene {
   create() {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.physics.world.TILE_BIAS = 32;
-    this.physics.world.gravity.y = this.isWaterLevel ? WATER_GRAVITY : LAND_GRAVITY;
+    this.physics.world.gravity.y =
+      this.isWaterLevel ? WATER_GRAVITY :
+      this.isSpaceLevel ? SPACE_GRAVITY :
+      LAND_GRAVITY;
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setBackgroundColor(this.isWaterLevel ? '#dfe9f1' : '#f5efdc');
+    this.cameras.main.setBackgroundColor(
+      this.isWaterLevel ? '#dfe9f1' :
+      this.isSpaceLevel ? '#eae3f0' :
+      '#f5efdc'
+    );
 
     this.drawPaperBackground();
 
@@ -92,6 +109,9 @@ export class MainScene extends Phaser.Scene {
       this.spawnCoral();
       this.spawnBlobfish();
       this.scheduleSharkPass();
+    } else if (this.isSpaceLevel) {
+      this.spawnStars();
+      this.drawPlanet();
     }
 
     this.platforms = this.physics.add.staticGroup();
@@ -101,7 +121,7 @@ export class MainScene extends Phaser.Scene {
 
     this.generateObstacles();
 
-    const spawnY = this.isWaterLevel ? WATER_TOP_Y + 40 : 400;
+    const spawnY = this.isFloaty ? WATER_TOP_Y + 40 : 400;
     this.player = this.physics.add.sprite(80, spawnY, 'player');
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(18, 28).setOffset(3, 3);
@@ -116,7 +136,10 @@ export class MainScene extends Phaser.Scene {
       this.handlePointerAction();
     });
 
-    const label = this.isWaterLevel ? `Level ${this.level}  ~ water ~` : `Level ${this.level}`;
+    const label =
+      this.isWaterLevel ? `Level ${this.level}  ~ water ~` :
+      this.isSpaceLevel ? `Level ${this.level}  ✦ space ✦` :
+      `Level ${this.level}`;
     this.add.text(72, 12, label, {
       fontFamily: "'Caveat', 'Kalam', cursive",
       fontSize: '28px',
@@ -179,6 +202,55 @@ export class MainScene extends Phaser.Scene {
       ease: 'Sine.easeIn',
       onComplete: () => shark.destroy()
     });
+  }
+
+  private spawnStars() {
+    const rng = mulberry32(hashLevel(this.level) ^ 0x73746172);
+    const count = 70 + Math.floor(rng() * 40);
+    for (let i = 0; i < count; i++) {
+      const x = 80 + rng() * (WORLD_WIDTH - 160);
+      const y = 30 + rng() * (WORLD_HEIGHT - 140);
+      const char = rng() < 0.5 ? '✦' : '✧';
+      const size = 14 + rng() * 12;
+      this.add.text(x, y, char, {
+        fontFamily: "'Caveat', 'Kalam', cursive",
+        fontSize: `${Math.round(size)}px`,
+        color: '#2a2420'
+      }).setOrigin(0.5).setAlpha(0.35 + rng() * 0.4).setDepth(-5);
+    }
+  }
+
+  private drawPlanet() {
+    const rng = mulberry32(hashLevel(this.level) ^ 0x706c616e);
+    const px = 600 + rng() * (WORLD_WIDTH - 1200);
+    const py = 90 + rng() * 60;
+    const r = 54 + rng() * 20;
+
+    const g = this.add.graphics().setDepth(-4);
+    g.fillStyle(0xe0d8c0, 0.55);
+    g.fillCircle(px, py, r);
+
+    const sketchCircle = (radius: number, lineW: number, alpha: number) => {
+      g.lineStyle(lineW, 0x2a2420, alpha);
+      g.beginPath();
+      const steps = 48;
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * Math.PI * 2;
+        const j = (rng() - 0.5) * 1.8;
+        const cx = px + Math.cos(t) * (radius + j);
+        const cy = py + Math.sin(t) * (radius + j);
+        if (i === 0) g.moveTo(cx, cy);
+        else g.lineTo(cx, cy);
+      }
+      g.strokePath();
+    };
+    sketchCircle(r, 2, 0.85);
+    sketchCircle(r, 1, 0.45);
+
+    g.fillStyle(0x2a2420, 0.18);
+    g.fillCircle(px - r * 0.35, py - r * 0.2, 5 + rng() * 4);
+    g.fillCircle(px + r * 0.22, py + r * 0.18, 3 + rng() * 3);
+    g.fillCircle(px - r * 0.1, py + r * 0.35, 4 + rng() * 3);
   }
 
   private spawnCoral() {
@@ -349,7 +421,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private nextLevel() {
-    if (this.level >= 2) {
+    if (this.level >= 3) {
       this.scene.start('CreditsScene');
       return;
     }
@@ -371,8 +443,8 @@ export class MainScene extends Phaser.Scene {
       return;
     }
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (this.isWaterLevel) {
-      this.player.setVelocityY(SWIM_VELOCITY);
+    if (this.isFloaty) {
+      this.player.setVelocityY(this.isSpaceLevel ? THRUST_VELOCITY : SWIM_VELOCITY);
     } else if (body.blocked.down) {
       this.player.setVelocityY(JUMP_VELOCITY);
     }
@@ -394,8 +466,8 @@ export class MainScene extends Phaser.Scene {
     const space = this.cursors.space!;
     const tapped = Phaser.Input.Keyboard.JustDown(up) || Phaser.Input.Keyboard.JustDown(space);
 
-    if (this.isWaterLevel) {
-      if (tapped) this.player.setVelocityY(SWIM_VELOCITY);
+    if (this.isFloaty) {
+      if (tapped) this.player.setVelocityY(this.isSpaceLevel ? THRUST_VELOCITY : SWIM_VELOCITY);
     } else if ((up.isDown || space.isDown) && body.blocked.down) {
       this.player.setVelocityY(JUMP_VELOCITY);
     }
