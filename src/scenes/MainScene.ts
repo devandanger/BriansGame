@@ -9,10 +9,13 @@ const JUMP_VELOCITY = -620;
 const SWIM_VELOCITY = -280;
 const WATER_TOP_Y = WORLD_HEIGHT * 0.2;
 
+type Blobfish = Phaser.GameObjects.Image & { _seen?: boolean };
+
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
+  private blobfish: Blobfish[] = [];
   private level = 1;
   private prompting = false;
 
@@ -27,6 +30,7 @@ export class MainScene extends Phaser.Scene {
   init(data: { level?: number }) {
     this.level = data.level ?? 1;
     this.prompting = false;
+    this.blobfish = [];
   }
 
   preload() {
@@ -61,6 +65,9 @@ export class MainScene extends Phaser.Scene {
     }
     g.generateTexture('block', 32, 32);
     g.destroy();
+
+    this.load.image('blobfish', 'assets/blobfish.png');
+    this.load.audio('blobfishSfx', 'assets/blobfish.m4a');
   }
 
   create() {
@@ -74,6 +81,7 @@ export class MainScene extends Phaser.Scene {
 
     if (this.isWaterLevel) {
       this.drawWater();
+      this.spawnBlobfish();
     }
 
     this.platforms = this.physics.add.staticGroup();
@@ -92,6 +100,8 @@ export class MainScene extends Phaser.Scene {
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     this.cursors = this.input.keyboard!.createCursorKeys();
+
+    this.input.on('pointerdown', this.handlePointerAction, this);
 
     const label = this.isWaterLevel ? `Level ${this.level}  ~ water ~` : `Level ${this.level}`;
     this.add.text(12, 12, label, {
@@ -112,6 +122,37 @@ export class MainScene extends Phaser.Scene {
     bg.lineBetween(60, 0, 60, WORLD_HEIGHT);
     bg.lineStyle(1.5, 0xc95454, 0.35);
     bg.lineBetween(62, 0, 62, WORLD_HEIGHT);
+  }
+
+  private spawnBlobfish() {
+    const rng = mulberry32(hashLevel(this.level) ^ 0x626c6f62);
+    const count = 5 + Math.floor(rng() * 4);
+    const minX = 280;
+    const maxX = WORLD_WIDTH - 200;
+    const minY = WATER_TOP_Y + 50;
+    const maxY = WORLD_HEIGHT - 70;
+
+    for (let i = 0; i < count; i++) {
+      const x = minX + rng() * (maxX - minX);
+      const y = minY + rng() * (maxY - minY);
+      const scale = 0.16 + rng() * 0.12;
+      const fish = this.add.image(x, y, 'blobfish').setScale(scale).setDepth(3) as Blobfish;
+      if (rng() < 0.5) fish.setFlipX(true);
+
+      const bobAmp = 14 + rng() * 24;
+      const bobDuration = 1400 + rng() * 1400;
+      this.tweens.add({
+        targets: fish,
+        y: y + bobAmp,
+        duration: bobDuration,
+        ease: 'Sine.easeInOut',
+        yoyo: true,
+        repeat: -1,
+        delay: rng() * 1200
+      });
+
+      this.blobfish.push(fish);
+    }
   }
 
   private drawWater() {
@@ -242,6 +283,19 @@ export class MainScene extends Phaser.Scene {
     this.scene.restart({ level: this.level + 1 });
   }
 
+  private handlePointerAction() {
+    if (this.prompting) {
+      this.nextLevel();
+      return;
+    }
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (this.isWaterLevel) {
+      this.player.setVelocityY(SWIM_VELOCITY);
+    } else if (body.blocked.down) {
+      this.player.setVelocityY(JUMP_VELOCITY);
+    }
+  }
+
   update() {
     if (this.prompting) return;
 
@@ -262,6 +316,24 @@ export class MainScene extends Phaser.Scene {
 
     if (this.player.x >= WORLD_WIDTH - this.player.width / 2 - 1) {
       this.reachEdge();
+    }
+
+    if (this.blobfish.length) this.checkBlobfishSeen();
+  }
+
+  private checkBlobfishSeen() {
+    const view = this.cameras.main.worldView;
+    for (const fish of this.blobfish) {
+      if (fish._seen) continue;
+      if (
+        fish.x + fish.displayWidth / 2 >= view.x &&
+        fish.x - fish.displayWidth / 2 <= view.x + view.width &&
+        fish.y + fish.displayHeight / 2 >= view.y &&
+        fish.y - fish.displayHeight / 2 <= view.y + view.height
+      ) {
+        fish._seen = true;
+        this.sound.play('blobfishSfx', { volume: 0.6 });
+      }
     }
   }
 }

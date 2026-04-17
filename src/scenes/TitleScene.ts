@@ -22,7 +22,7 @@ export class TitleScene extends Phaser.Scene {
 
     const cx = width / 2;
 
-    const title = this.add.text(cx, height * 0.38, "Uncle Brian's Game!!", {
+    const title = this.add.text(cx, height * 0.38, "Uncle Brian's Game", {
       fontFamily: "'Caveat', 'Kalam', cursive",
       fontSize: '88px',
       color: '#2a2420'
