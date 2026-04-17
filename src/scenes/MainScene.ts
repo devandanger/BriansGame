@@ -31,18 +31,34 @@ export class MainScene extends Phaser.Scene {
 
   preload() {
     const g = this.add.graphics();
-    g.fillStyle(0x4ab6ff, 1);
-    g.fillRect(0, 0, 24, 32);
+
+    sketchRect(g, 0, 0, 24, 32, 0xfff8e8, 0x2a2420);
+    g.fillStyle(0x2a2420, 1);
+    g.fillCircle(9, 11, 1.5);
+    g.fillCircle(16, 11, 1.5);
+    g.lineStyle(1, 0x2a2420, 0.9);
+    g.beginPath();
+    g.moveTo(9, 20);
+    g.lineTo(16, 20);
+    g.strokePath();
     g.generateTexture('player', 24, 32);
     g.clear();
 
-    g.fillStyle(0x3a7d3a, 1);
-    g.fillRect(0, 0, 64, 32);
+    sketchRect(g, 0, 0, 64, 32, 0xe8dcb5, 0x2a2420);
+    g.lineStyle(1, 0x2a2420, 0.35);
+    for (let i = 0; i < 6; i++) {
+      const sx = 4 + i * 10 + Math.random() * 2;
+      g.lineBetween(sx, 8 + Math.random() * 2, sx + 6, 14 + Math.random() * 2);
+    }
     g.generateTexture('ground', 64, 32);
     g.clear();
 
-    g.fillStyle(0x8a5a2b, 1);
-    g.fillRect(0, 0, 32, 32);
+    sketchRect(g, 0, 0, 32, 32, 0xd9c98a, 0x2a2420);
+    g.lineStyle(1, 0x2a2420, 0.3);
+    for (let i = 0; i < 3; i++) {
+      const hy = 8 + i * 8 + Math.random() * 2;
+      g.lineBetween(5 + Math.random() * 2, hy, 27 - Math.random() * 2, hy + 3);
+    }
     g.generateTexture('block', 32, 32);
     g.destroy();
   }
@@ -52,18 +68,12 @@ export class MainScene extends Phaser.Scene {
     this.physics.world.TILE_BIAS = 32;
     this.physics.world.gravity.y = this.isWaterLevel ? WATER_GRAVITY : LAND_GRAVITY;
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setBackgroundColor(this.isWaterLevel ? '#0a2a44' : '#1d1d2a');
+    this.cameras.main.setBackgroundColor(this.isWaterLevel ? '#dfe9f1' : '#f5efdc');
+
+    this.drawPaperBackground();
 
     if (this.isWaterLevel) {
-      const waterHeight = WORLD_HEIGHT - WATER_TOP_Y;
-      this.add.rectangle(
-        WORLD_WIDTH / 2,
-        WATER_TOP_Y + waterHeight / 2,
-        WORLD_WIDTH,
-        waterHeight,
-        0x3377cc,
-        0.35
-      ).setDepth(5);
+      this.drawWater();
     }
 
     this.platforms = this.physics.add.staticGroup();
@@ -77,6 +87,7 @@ export class MainScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(80, spawnY, 'player');
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(18, 28).setOffset(3, 3);
+    this.player.setDepth(6);
     this.physics.add.collider(this.player, this.platforms);
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -84,10 +95,54 @@ export class MainScene extends Phaser.Scene {
 
     const label = this.isWaterLevel ? `Level ${this.level}  ~ water ~` : `Level ${this.level}`;
     this.add.text(12, 12, label, {
-      fontFamily: 'monospace',
-      fontSize: '20px',
-      color: '#ffffff'
+      fontFamily: "'Caveat', 'Kalam', cursive",
+      fontSize: '28px',
+      color: '#2a2420'
     }).setScrollFactor(0).setDepth(100);
+  }
+
+  private drawPaperBackground() {
+    const bg = this.add.graphics().setDepth(-10);
+    bg.lineStyle(1, 0x8fb4d6, 0.55);
+    for (let ly = 40; ly < WORLD_HEIGHT - 20; ly += 30) {
+      const jy = ly + (Math.random() - 0.5);
+      bg.lineBetween(0, jy, WORLD_WIDTH, jy);
+    }
+    bg.lineStyle(1.5, 0xc95454, 0.55);
+    bg.lineBetween(60, 0, 60, WORLD_HEIGHT);
+    bg.lineStyle(1.5, 0xc95454, 0.35);
+    bg.lineBetween(62, 0, 62, WORLD_HEIGHT);
+  }
+
+  private drawWater() {
+    const waterHeight = WORLD_HEIGHT - WATER_TOP_Y;
+    this.add.rectangle(
+      WORLD_WIDTH / 2,
+      WATER_TOP_Y + waterHeight / 2,
+      WORLD_WIDTH,
+      waterHeight,
+      0x6fa8cf,
+      0.22
+    ).setDepth(4);
+
+    const wave = this.add.graphics().setDepth(5);
+    wave.lineStyle(2, 0x2e5a80, 0.75);
+    wave.beginPath();
+    wave.moveTo(0, WATER_TOP_Y);
+    for (let wx = 0; wx <= WORLD_WIDTH; wx += 14) {
+      const wy = WATER_TOP_Y + Math.sin(wx * 0.09) * 3 + (Math.random() - 0.5);
+      wave.lineTo(wx, wy);
+    }
+    wave.strokePath();
+
+    wave.lineStyle(1, 0x2e5a80, 0.35);
+    wave.beginPath();
+    wave.moveTo(0, WATER_TOP_Y + 4);
+    for (let wx = 0; wx <= WORLD_WIDTH; wx += 14) {
+      const wy = WATER_TOP_Y + 4 + Math.sin(wx * 0.11 + 1) * 2;
+      wave.lineTo(wx, wy);
+    }
+    wave.strokePath();
   }
 
   private generateObstacles() {
@@ -150,18 +205,29 @@ export class MainScene extends Phaser.Scene {
     const cx = cam.width / 2;
     const cy = cam.height / 2;
 
-    const bg = this.add.rectangle(0, 0, 420, 160, 0x000000, 0.75).setStrokeStyle(2, 0xffffff);
-    const title = this.add.text(0, -40, `Level ${this.level} complete!`, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffffff'
-    }).setOrigin(0.5);
-    const body = this.add.text(0, 0, 'Go to next board?', {
-      fontFamily: 'monospace', fontSize: '18px', color: '#ffffff'
-    }).setOrigin(0.5);
-    const hint = this.add.text(0, 40, 'Press any key to continue', {
-      fontFamily: 'monospace', fontSize: '16px', color: '#ffcc33'
-    }).setOrigin(0.5);
+    const paper = this.add.graphics();
+    paper.fillStyle(0xfff8e8, 0.96);
+    paper.fillRoundedRect(-210, -80, 420, 160, 6);
+    const drawBorder = () => {
+      paper.beginPath();
+      paper.moveTo(-210 + Math.random() * 1.5, -80 + Math.random() * 1.5);
+      paper.lineTo(210 - Math.random() * 1.5, -80 + Math.random() * 1.5);
+      paper.lineTo(210 - Math.random() * 1.5, 80 - Math.random() * 1.5);
+      paper.lineTo(-210 + Math.random() * 1.5, 80 - Math.random() * 1.5);
+      paper.closePath();
+      paper.strokePath();
+    };
+    paper.lineStyle(2, 0x2a2420, 0.9);
+    drawBorder();
+    paper.lineStyle(1, 0x2a2420, 0.5);
+    drawBorder();
 
-    this.add.container(cx, cy, [bg, title, body, hint])
+    const font = { fontFamily: "'Caveat', 'Kalam', cursive", color: '#2a2420' };
+    const title = this.add.text(0, -40, `Level ${this.level} complete!`, { ...font, fontSize: '32px' }).setOrigin(0.5);
+    const body = this.add.text(0, 0, 'Go to next page?', { ...font, fontSize: '24px' }).setOrigin(0.5);
+    const hint = this.add.text(0, 40, 'Press any key to continue', { ...font, fontSize: '20px', color: '#8a5a2b' }).setOrigin(0.5);
+
+    this.add.container(cx, cy, [paper, title, body, hint])
       .setScrollFactor(0)
       .setDepth(100);
 
@@ -169,6 +235,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private nextLevel() {
+    if (this.level >= 4) {
+      this.scene.start('CreditsScene');
+      return;
+    }
     this.scene.restart({ level: this.level + 1 });
   }
 
@@ -194,6 +264,29 @@ export class MainScene extends Phaser.Scene {
       this.reachEdge();
     }
   }
+}
+
+function sketchRect(
+  g: Phaser.GameObjects.Graphics,
+  x: number, y: number, w: number, h: number,
+  fill: number, stroke: number
+) {
+  g.fillStyle(fill, 1);
+  g.fillRect(x, y, w, h);
+
+  const outline = (lineW: number, alpha: number) => {
+    const r = () => Math.random() * 1.2;
+    g.lineStyle(lineW, stroke, alpha);
+    g.beginPath();
+    g.moveTo(x + r(), y + r());
+    g.lineTo(x + w - r(), y + r());
+    g.lineTo(x + w - r(), y + h - r());
+    g.lineTo(x + r(), y + h - r());
+    g.closePath();
+    g.strokePath();
+  };
+  outline(1.5, 0.9);
+  outline(1, 0.5);
 }
 
 function hashLevel(level: number): number {
